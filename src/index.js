@@ -8,19 +8,21 @@ import MainPage from './mainPage';
 import { Provider } from 'react-redux';
 import { store } from './store';
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: <MainPage />,
+    },
+    {
+      path: "/pics",
+      element: <Pics />,
+    },
+  ],
   {
-    path: "/",
-    element: <MainPage />,
-  },
-  {
-    path: "/pics",
-    element: <Pics/>,
-  },
-  {
-    basename: "/react17test", // ⚠️ 請換成你的 GitHub Repository 實際名稱（開頭要斜線）
+    basename: "/react17test", // 這樣才是正確的第二個參數設定物件
   }
-]);
+);
 
 // 2. Render the RouterProvider
 ReactDOM.createRoot(document.getElementById("root")).render(
