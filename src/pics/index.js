@@ -2,7 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from "react-router";
 import OpenSeadragon from 'openseadragon';
 import { SeatMapOSD } from '../components/SeatMapOSD';
-import { BUNDLE, TPL_VER } from '../components/seatConfig';
+import { BUNDLE } from '../components/seatConfig';
+
+// import { BUNDLE, TPL_VER } from '../components/seatConfig';
 
 function Pics() {
     let navigate = useNavigate();

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 export function SeatMapOSD({ data: customData, baseData }) {
@@ -39,6 +39,11 @@ export function SeatMapOSD({ data: customData, baseData }) {
   
   // 要標記為紅色的座位 ID 列表（改為物件陣列）
   const selectData = useSelector((state) => state.seats.list).filter((item)=> !item.hidden) || [];
+  // const selectData = [
+  //   { id: '9-52', side: 'L', name: '彥君' },
+  //   { id: '9-51', side: 'L', name: '佩珊' },
+  //   { id: '13-52', side: 'L', name: '秋錦' }
+  // ];
   
   // 提取所有選中的 ID 以便快速查找
   const selectedIds = selectData.map(item => item.id);
@@ -93,16 +98,18 @@ export function SeatMapOSD({ data: customData, baseData }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 獲取第一個選中座標在畫布上的位置（基於當前縮放和平移）
-  const getSelectedCanvasPos = useCallback(() => {
+  // 獲取選中座標在畫布上的位置（基於當前縮放和平移）
+  const getSelectedCanvasPos = () => {
     if (!data || !data.seats) return null;
     
+    // 使用第一個選中的座位
     const firstSelectedId = selectedIds[0];
     if (!firstSelectedId) return null;
     
     const selectedSeat = data.seats.find(seat => seat.id === firstSelectedId);
     if (!selectedSeat) return null;
     
+    // 計算所有座標範圍
     let allX = [];
     let allY = [];
     
@@ -149,88 +156,31 @@ export function SeatMapOSD({ data: customData, baseData }) {
     const width = canvasSize.width;
     const height = canvasSize.height;
 
+    // 計算基礎位置
     let px = ((selectedSeat.ix - minX) / rangeX) * width;
     let py = ((selectedSeat.iy - minY) / rangeY) * height;
     
+    // 應用當前縮放和平移
     const centerX = width / 2;
     const centerY = height / 2;
     px = (px - centerX) * zoom + centerX + pan.x;
     py = (py - centerY) * zoom + centerY + pan.y;
     
     return { x: px, y: py };
-  }, [data, _baseData, displayMode, canvasSize, zoom, pan, selectedIds]);
-
-  // 獲取第一個選中座標在原始數據中的位置（不經縮放和平移）
-  const getSelectedOriginalPos = useCallback(() => {
-    if (!data || !data.seats) return null;
-    
-    const firstSelectedId = selectedIds[0];
-    if (!firstSelectedId) return null;
-    
-    const selectedSeat = data.seats.find(seat => seat.id === firstSelectedId);
-    if (!selectedSeat) return null;
-    
-    let allX = [];
-    let allY = [];
-    
-    if (data) {
-      if (data.anchor) {
-        allX.push(data.anchor.cx);
-        allY.push(data.anchor.cy);
-      }
-      if (data.seats) {
-        data.seats.forEach(s => {
-          allX.push(s.ix);
-          allY.push(s.iy);
-        });
-      }
-    }
-    
-    if (displayMode === 'both' && _baseData) {
-      if (_baseData.anchor) {
-        allX.push(_baseData.anchor.cx);
-        allY.push(_baseData.anchor.cy);
-      }
-      if (_baseData.seats) {
-        _baseData.seats.forEach(s => {
-          allX.push(s.ix);
-          allY.push(s.iy);
-        });
-      }
-    }
-
-    if (allX.length === 0 || allY.length === 0) {
-      allX.push(0, 100);
-      allY.push(0, 100);
-    }
-
-    const dataPadding = 80;
-    const minX = Math.min(...allX) - dataPadding;
-    const maxX = Math.max(...allX) + dataPadding;
-    const minY = Math.min(...allY) - dataPadding;
-    const maxY = Math.max(...allY) + dataPadding;
-
-    const rangeX = maxX - minX || 1;
-    const rangeY = maxY - minY || 1;
-
-    const width = canvasSize.width;
-    const height = canvasSize.height;
-
-    let px = ((selectedSeat.ix - minX) / rangeX) * width;
-    let py = ((selectedSeat.iy - minY) / rangeY) * height;
-    
-    return { x: px, y: py };
-  }, [data, _baseData, displayMode, canvasSize, selectedIds]);
+  };
 
   // 自動聚焦到選中座位
   useEffect(() => {
     if (hasAutoFocused || !data || !data.seats || data.seats.length === 0) return;
     if (selectedIds.length === 0) return;
 
+    console.log(selectedIds,'selectedIds')
+
     const firstSelectedId = selectedIds[0];
     const selectedSeat = data.seats.find(seat => seat.id === firstSelectedId);
     if (!selectedSeat) return;
 
+    // 計算所有座標範圍
     let allX = [];
     let allY = [];
     
@@ -301,52 +251,46 @@ export function SeatMapOSD({ data: customData, baseData }) {
     setHasAutoFocused(false);
   };
 
-  // 標記是否正在縮放中，避免觸發拖拽
-  const isZoomingRef = useRef(false);
-
-  // 滑鼠滾輪縮放 - 以第一個選中座位為中心
-  const handleWheel = useCallback((e) => {
+  // 滑鼠滾輪縮放 - 以選中位置為中心
+  const handleWheel = (e) => {
     e.preventDefault();
-    e.stopPropagation();
     
-    isZoomingRef.current = true;
-    
-    const selectedOriginalPos = getSelectedOriginalPos();
-    
-    if (!selectedOriginalPos) {
+    // 獲取選中座標的畫布位置
+    const selectedPos = getSelectedCanvasPos();
+    if (!selectedPos) {
+      // 如果沒有選中座位，使用畫布中心
       const centerX = canvasSize.width / 2;
       const centerY = canvasSize.height / 2;
       const delta = e.deltaY > 0 ? -0.05 : 0.05;
       const zoomFactor = 1 + delta;
       const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.1), 1000);
       
+      // 以畫布中心為縮放中心
       const panX = centerX - (centerX - pan.x) * (newZoom / zoom);
       const panY = centerY - (centerY - pan.y) * (newZoom / zoom);
       
       setZoom(newZoom);
       setPan({ x: panX, y: panY });
-    } else {
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      const zoomFactor = 1 + delta;
-      const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.1), 1000);
-      
-      const ratio = newZoom / zoom;
-      const newPanX = selectedOriginalPos.x - (selectedOriginalPos.x - pan.x) * ratio;
-      const newPanY = selectedOriginalPos.y - (selectedOriginalPos.y - pan.y) * ratio;
-      
-      setZoom(newZoom);
-      setPan({ x: newPanX, y: newPanY });
+      return;
     }
+
+    // 計算縮放因子
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    const zoomFactor = 1 + delta;
+    const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.1), 1000);
     
-    setTimeout(() => {
-      isZoomingRef.current = false;
-    }, 100);
-  }, [zoom, pan, canvasSize, getSelectedOriginalPos]);
+    // 以選中位置為縮放中心
+    // 公式：newPan = selectedPos - (selectedPos - oldPan) * (newZoom / oldZoom)
+    const ratio = newZoom / zoom;
+    const newPanX = selectedPos.x - (selectedPos.x - pan.x) * ratio;
+    const newPanY = selectedPos.y - (selectedPos.y - pan.y) * ratio;
+    
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  };
 
   // 滑鼠事件 - 拖拽平移
   const handleMouseDown = (e) => {
-    if (isZoomingRef.current) return;
-    
     if (e.button === 0) {
       setIsDragging(true);
       setDragStart({ x: e.clientX, y: e.clientY });
@@ -358,8 +302,6 @@ export function SeatMapOSD({ data: customData, baseData }) {
   };
 
   const handleMouseMove = (e) => {
-    if (isZoomingRef.current) return;
-    
     if (isDragging) {
       const dx = e.clientX - dragStart.x;
       const dy = e.clientY - dragStart.y;
@@ -386,8 +328,9 @@ export function SeatMapOSD({ data: customData, baseData }) {
     }
   };
 
-  // 觸控事件 - 移除 preventDefault，因為將通過 addEventListener 控制
-  const handleTouchStart = useCallback((e) => {
+  // 觸控事件
+  const handleTouchStart = (e) => {
+    e.preventDefault();
     const touches = e.touches;
     
     if (touches.length === 1) {
@@ -405,14 +348,13 @@ export function SeatMapOSD({ data: customData, baseData }) {
       setLastTouchDistance(distance);
       setIsDragging(false);
     }
-  }, [pan]);
+  };
 
-  const handleTouchMove = useCallback((e) => {
+  const handleTouchMove = (e) => {
+    e.preventDefault();
     const touches = e.touches;
     
     if (touches.length === 1 && isDragging && touchStart) {
-      if (isZoomingRef.current) return;
-      
       const touch = touches[0];
       const dx = touch.clientX - touchStart.x;
       const dy = touch.clientY - touchStart.y;
@@ -421,8 +363,6 @@ export function SeatMapOSD({ data: customData, baseData }) {
         y: touchPanStart.y + dy
       });
     } else if (touches.length === 2 && lastTouchDistance !== null) {
-      isZoomingRef.current = true;
-      
       const touch1 = touches[0];
       const touch2 = touches[1];
       const distance = Math.hypot(
@@ -433,17 +373,19 @@ export function SeatMapOSD({ data: customData, baseData }) {
       const scaleFactor = distance / lastTouchDistance;
       const newZoom = Math.min(Math.max(zoom * scaleFactor, 0.1), 1000);
       
-      const selectedOriginalPos = getSelectedOriginalPos();
-      
-      if (selectedOriginalPos) {
+      // 以選中位置為縮放中心
+      const selectedPos = getSelectedCanvasPos();
+      if (selectedPos) {
         const ratio = newZoom / zoom;
-        const newPanX = selectedOriginalPos.x - (selectedOriginalPos.x - pan.x) * ratio;
-        const newPanY = selectedOriginalPos.y - (selectedOriginalPos.y - pan.y) * ratio;
+        const newPanX = selectedPos.x - (selectedPos.x - pan.x) * ratio;
+        const newPanY = selectedPos.y - (selectedPos.y - pan.y) * ratio;
         setPan({ x: newPanX, y: newPanY });
       } else {
-        const rect = canvasRef.current.getBoundingClientRect();
+        // 如果沒有選中座位，以觸控中心為縮放中心
         const centerX = (touch1.clientX + touch2.clientX) / 2;
         const centerY = (touch1.clientY + touch2.clientY) / 2;
+        // 需要轉換為 canvas 座標
+        const rect = canvasRef.current.getBoundingClientRect();
         const canvasCenterX = ((centerX - rect.left) / rect.width) * canvasSize.width;
         const canvasCenterY = ((centerY - rect.top) / rect.height) * canvasSize.height;
         const ratio = newZoom / zoom;
@@ -454,41 +396,16 @@ export function SeatMapOSD({ data: customData, baseData }) {
       
       setZoom(newZoom);
       setLastTouchDistance(distance);
-      
-      setTimeout(() => {
-        isZoomingRef.current = false;
-      }, 100);
     }
-  }, [isDragging, touchStart, touchPanStart, pan, zoom, canvasSize, getSelectedOriginalPos, lastTouchDistance]);
+  };
 
-  const handleTouchEnd = useCallback((e) => {
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
     setIsDragging(false);
     setTouchStart(null);
     setTouchPanStart(null);
     setLastTouchDistance(null);
-    isZoomingRef.current = false;
-  }, []);
-
-  // 綁定 wheel 和觸控事件（使用 passive: false）
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    // 綁定 wheel 事件
-    canvas.addEventListener('wheel', handleWheel, { passive: false });
-    
-    // 綁定觸控事件，設置 passive: false 以允許 preventDefault
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('wheel', handleWheel);
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  };
 
   // 2. 繪製圖形邏輯
   useEffect(() => {
@@ -501,6 +418,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
 
     ctx.clearRect(0, 0, width, height);
 
+    // 決定要繪製的資料集
     const datasets = [];
     if (displayMode === 'both' || displayMode === 'data') {
       if (data) datasets.push({ data: data, type: 'data', color: '#007bff', label: 'Data' });
@@ -517,6 +435,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
       return;
     }
 
+    // 收集所有座標點來計算邊界
     let allX = [];
     let allY = [];
     
@@ -575,6 +494,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
     const rangeX = maxX - minX || 1;
     const rangeY = maxY - minY || 1;
 
+    // 座標轉換
     const toCanvasCoords = (ix, iy) => {
       let px = ((ix - minX) / rangeX) * width;
       let py = ((iy - minY) / rangeY) * height;
@@ -589,13 +509,16 @@ export function SeatMapOSD({ data: customData, baseData }) {
 
     ctx.save();
 
+    // 繪製背景外框
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, width, height);
     ctx.strokeStyle = '#dee2e6';
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, width, height);
 
+    // 繪製每個資料集
     datasets.forEach(({ data, type, color, label }) => {
+      // 繪製 Anchor 範圍圓圈
       if (data.anchor) {
         const anchorCenter = toCanvasCoords(data.anchor.cx, data.anchor.cy);
         const edgePoint = toCanvasCoords(data.anchor.cx + data.anchor.r, data.anchor.cy);
@@ -620,6 +543,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
         ctx.fillText('', anchorCenter.x, anchorCenter.y - 10);
       }
 
+      // 繪製 Seats 座位
       if (data.seats) {
         data.seats.forEach(seat => {
           const pos = toCanvasCoords(seat.ix, seat.iy);
@@ -637,6 +561,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
           }
           
           if (type === 'base') {
+            // Base 資料：只顯示 ID 文字
             const fontSize = Math.min(Math.max(8 * Math.min(zoom, 1), 6), 20);
             ctx.font = `${fontSize}px sans-serif`;
             ctx.fillStyle = 'rgba(108, 117, 125, 0.6)';
@@ -644,8 +569,10 @@ export function SeatMapOSD({ data: customData, baseData }) {
             ctx.textBaseline = 'middle';
             ctx.fillText(seat.id, pos.x, pos.y);
           } else {
+            // Data 資料：顯示圓形
             ctx.arc(pos.x, pos.y, Math.max(dotSize, 2), 0, 2 * Math.PI);
             
+            // 檢查是否在選中列表中
             const isSelected = selectData.some(item => item.id === seat.id && item.side === seat.side);
             
             if (isSelected) {
@@ -660,6 +587,9 @@ export function SeatMapOSD({ data: customData, baseData }) {
               ctx.shadowBlur = 0;
               ctx.strokeStyle = '#ffffff';
               ctx.lineWidth = 1;
+
+              // 原來位置的id顯示
+              // ctx.fillText(seat.id, pos.x, pos.y);
             }
             
             ctx.fill();
@@ -668,8 +598,9 @@ export function SeatMapOSD({ data: customData, baseData }) {
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
 
+            // 只在被選中時顯示文字（優先顯示 name，否則顯示 id）
             if (isSelected && zoom > 0.8) {
-              const selectedInfo = selectData.find((item) => item.id === seat.id && item.side === seat.side);
+              const selectedInfo = selectedMap[seat.id];
               const displayText = selectedInfo?.name || seat.id;
               
               const idFontSize = Math.min(Math.max(10 * Math.min(zoom, 1.5), 8), 30);
@@ -679,6 +610,16 @@ export function SeatMapOSD({ data: customData, baseData }) {
               ctx.textBaseline = 'middle';
               ctx.fillText(displayText, pos.x, pos.y);
             }
+
+            // 為選中的座位添加額外標記（已註解掉）
+            // if (isSelected && zoom > 1.0) {
+            //   const starSize = Math.min(Math.max(12 * Math.min(zoom, 2), 12), 50);
+            //   ctx.font = `${starSize}px sans-serif`;
+            //   ctx.fillStyle = '#ff0000';
+            //   ctx.textAlign = 'center';
+            //   ctx.textBaseline = 'bottom';
+            //   // ctx.fillText('★', pos.x, pos.y - dotSize - 5);
+            // }
           }
         });
       }
@@ -699,6 +640,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
                         Math.round(zoom * 100) / 100;
     ctx.fillText(`${displayZoom}×`, 55, 24);
 
+    // 繪製圖例
     const legendY = 20;
     let legendX = 110;
     ctx.textBaseline = 'middle';
@@ -729,7 +671,7 @@ export function SeatMapOSD({ data: customData, baseData }) {
 
     ctx.restore();
 
-  }, [canvasSize, data, _baseData, displayMode, zoom, pan, selectedIds, selectData]);
+  }, [canvasSize, data, _baseData, displayMode, zoom, pan, selectedIds, selectedMap]);
 
   return (
     <div style={{ width: '100%', maxWidth: '600px', margin: '20px auto' }}>
@@ -822,11 +764,14 @@ export function SeatMapOSD({ data: customData, baseData }) {
             userSelect: 'none',
             WebkitUserSelect: 'none'
           }}
+          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
-          // 移除 onTouchStart, onTouchMove, onTouchEnd，因為已通過 addEventListener 綁定
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         />
         
         {data && data.seats && data.seats.length > 0 && (

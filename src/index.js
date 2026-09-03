@@ -5,6 +5,8 @@ import reportWebVitals from './reportWebVitals';
 import { createBrowserRouter, RouterProvider } from "react-router";
 import Pics from './pics';
 import MainPage from './mainPage';
+import Upgrade from './mainPage/upgrade';
+import See from './mainPage/see';
 import { Provider } from 'react-redux';
 import { store } from './store';
 
@@ -18,6 +20,14 @@ const router = createBrowserRouter(
       path: "/pics",
       element: <Pics />,
     },
+    {
+      path: "/upgrade",
+      element: <Upgrade />,
+    },
+    {
+      path: "/see",
+      element: <See />,
+    }
   ],
   {
     basename: "/react17test", // 這樣才是正確的第二個參數設定物件

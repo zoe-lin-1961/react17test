@@ -251,6 +251,20 @@ function Mainpage() {
           uploadRouter={() => {navigate('/pics')}}
         />
       </div>
+      <footer className="text-gray-500 text-sm border-t border-gray-200 p-2 mt-4">
+      <div className="text-orange-500" >頁面更新會清掉所有數據,需要重新輸入!!</div>  
+      <div className="text-orange-500" >如有不便敬請見諒</div> 
+      <span className=" text-blue-600 hover:text-blue-800 
+      hover:underline transition-colors duration-200"
+      onClick={() => {navigate('/upgrade')}}
+      >更新日誌</span> |
+      <span className=" text-blue-600 hover:text-blue-800 
+      hover:underline ml-1 transition-colors duration-200"
+      onClick={() => {navigate('/see')}}
+      >
+        參考資料來源
+      </span>
+</footer>
     </div>
   );
 }

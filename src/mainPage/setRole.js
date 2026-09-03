@@ -36,7 +36,13 @@ function SetRole(props, ref) {
 
     function addRecored(){
       let theSite = {id:seat1+'-'+seat2,side:seatSit}
-      const isNotPostion = seat1 > 54 || seat2 > 73 || seat1 < 1 || seat2 < 1 ;
+      const uniqueIds = BUNDLE.scenes['00'].seats.reduce((acc, item) => {
+        if (!acc.includes(item.id)) {
+          acc.push(item.id);
+        }
+        return acc;
+      }, []);
+      const isNotPostion = seat1 > 54 || seat2 > 73 || seat1 < 1 || seat2 < 1 || !uniqueIds.find(id => id === (seat1+'-'+seat2));
       const hasTheSamePosition = !!ids.find((c)=>c.id===theSite.id && c.side===theSite.side)
       theSite.position =[]
       Object.entries(BUNDLE.scenes).map((item) => {
