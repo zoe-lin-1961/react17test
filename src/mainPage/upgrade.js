@@ -70,6 +70,10 @@ export default function Upgrade() {
             </div>
             </div>
         </div>
+        <div className="space-y-6 mt-8">
+            <div className="flex items-center gap-3 mb-2">版本更新會清掉所有數據,需要重新輸入!!如有不便敬請見諒</div>
+            <div className="flex items-center gap-3 mb-2">不再更新版本,避免大家頻繁重新輸入</div>
+        </div>
         </div>
     </div>
     
