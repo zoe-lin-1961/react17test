@@ -63,6 +63,58 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/a
 
 ### Deployment
 
+
+
+
+
+
+
+
+# React 座位編排系統（react17test）
+
+這是一個使用 React 18 開發的座位編排與場景管理練習專案。系統提供多種預設隊形場景（如圓形、法船、四弘誓願、五大洲等），使用者可即時切換場景並在 Canvas 上查看對應的座位位置圖，同時透過 Redux 管理座位狀態，並將選擇結果自動保存至 localStorage。
+
+## ✨ 功能特色
+
+- 🗺️ **多場景切換**：內建多種隊形模板，可快速切換座位排列方式
+  - 基本隊形
+  - 圓形
+  - 行願千手
+  - 靜思家風
+  - 法船／法船（異動）
+  - 四弘誓願
+  - 大船師
+  - 教育／慈誠／人文
+  - 五大洲（台灣）／五大洲
+  - 基本地標＋豆豆圖／基本地標／豆豆圖
+- 🎨 **Canvas 位置圖繪製**：使用 Canvas 動態繪製座位分佈，視覺化呈現不同場景
+- 💺 **座位狀態管理**：透過 Redux Toolkit 管理座位選擇與切換
+- 💾 **自動儲存**：自定義 middleware 將座位狀態寫入 localStorage，重新整理不遺失
+- 🔄 **一鍵重置**：快速清除所有座位選擇，恢復初始狀態
+- 🧭 **多頁面路由**：使用 React Router v6 管理主頁、圖片、升級、查看等頁面
+- 📦 **彈窗管理**：以 Redux slice 控制全域彈窗開關
+
+## 🛠️ 技術棧
+
+- **前端框架**：React 18
+- **路由**：React Router v6
+- **狀態管理**：Redux Toolkit
+- **繪圖**：HTML5 Canvas
+- **持久化**：自定義 middleware + localStorage
+- **建置工具**：Create React App（或 Vite，請依實際情況調整）
+
+## 🚀 安裝與運行
+
+### 環境要求
+
+- Node.js >= 16
+- npm 或 yarn
+
+### 安裝依賴
+
+```bash
+npm install
+
 This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
 
 ### `npm run build` fails to minify
